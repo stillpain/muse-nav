@@ -1,0 +1,3 @@
+import { error } from '@sveltejs/kit'; import { readFile } from 'node:fs/promises'; import { extname, basename } from 'node:path'; import { mediaDir } from '$lib/server/db';
+const types:Record<string,string>={'.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.webp':'image/webp','.gif':'image/gif','.ico':'image/x-icon'};
+export const GET=async({params})=>{const name=basename(params.file);if(name!==params.file)error(400);const type=types[extname(name).toLowerCase()];if(!type)error(404);try{return new Response(await readFile(`${mediaDir}/${name}`),{headers:{'content-type':type,'cache-control':'public,max-age=2592000'}})}catch{error(404)}};

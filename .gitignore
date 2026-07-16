@@ -8,3 +8,7 @@ dist/
 .DS_Store
 coverage/
 content-snapshot.json
+data/
+backups/
+apps/muse/build/
+apps/muse/.svelte-kit/

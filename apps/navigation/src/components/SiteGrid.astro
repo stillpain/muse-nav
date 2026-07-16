@@ -1,6 +1,0 @@
----
-import SiteCard from './SiteCard.astro';
-import type { Site } from '@/lib/content/types';
-const { sites } = Astro.props as { sites: Site[] };
----
-{sites.length ? <div class="site-grid">{sites.map((site) => <SiteCard site={site} />)}</div> : <div class="empty-state">这个分类还在整理中。</div>}

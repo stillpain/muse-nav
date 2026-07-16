@@ -1,26 +1,15 @@
 {
   "name": "muse-platform",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
+  "packageManager": "pnpm@11.9.0",
   "scripts": {
-    "dev": "pnpm --filter @muse/navigation dev",
-    "dev:navigation": "pnpm --filter @muse/navigation dev",
-    "dev:blog": "pnpm --filter @muse/blog dev",
-    "build": "pnpm build:navigation && pnpm build:blog",
-    "build:navigation": "pnpm --filter @muse/navigation build",
-    "build:blog": "pnpm --filter @muse/blog build",
-    "preview": "pnpm --filter @muse/navigation preview",
-    "preview:blog": "pnpm --filter @muse/blog preview",
-    "check": "pnpm --filter @muse/navigation check && pnpm --filter @muse/blog check",
-    "test": "vitest run",
-    "check:links": "node scripts/check-links.mjs"
+    "dev": "pnpm --filter @muse/app dev",
+    "build": "pnpm --filter @muse/app build",
+    "preview": "pnpm --filter @muse/app preview",
+    "check": "pnpm --filter @muse/app check"
   },
   "dependencies": {},
-  "devDependencies": {
-    "@astrojs/check": "^0.9.0",
-    "@types/node": "^22.10.0",
-    "typescript": "^5.7.0",
-    "vitest": "^3.0.0"
-  }
+  "devDependencies": {}
 }

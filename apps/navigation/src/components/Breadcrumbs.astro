@@ -1,6 +1,0 @@
----
-const { items } = Astro.props as { items: { name: string; href?: string }[] };
----
-<nav class="container breadcrumbs" aria-label="面包屑">
-  {items.map((item, index) => index === 0 ? (item.href ? <a href={item.href}>{item.name}</a> : <span>{item.name}</span>) : <span>{item.href ? <a href={item.href}>{item.name}</a> : item.name}</span>)}
-</nav>

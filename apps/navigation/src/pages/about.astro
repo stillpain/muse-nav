@@ -1,8 +1,0 @@
----
-import BaseLayout from '@/layouts/BaseLayout.astro'; import Breadcrumbs from '@/components/Breadcrumbs.astro'; import { siteConfig } from '@/config';
----
-<BaseLayout title={`关于本站｜${siteConfig.name}`} description="了解暮色导航的收录原则与维护方式。">
-  <Breadcrumbs items={[{name:'首页',href:'/'},{name:'关于本站'}]} />
-  <section class="reading page-intro"><p class="eyebrow">ABOUT</p><h1>不是更长的收藏夹，而是一张有取舍的网址地图。</h1><p class="lead">暮色导航服务于快速搜索、清楚分类和日常抵达。</p></section>
-  <article class="reading content-card rich-copy" style="margin-bottom:72px;"><h2>收录原则</h2><p>网站需要具有明确用途、稳定入口和可验证的信息来源。不会因为付费或交换链接自动获得推荐位置，存在风险、诱导或来源不明的内容不会收录。</p><h2>保持纯粹</h2><p>本站只承担导航功能：搜索、分类和网站入口。内容以实用、清晰和快速抵达为优先，不在导航页面混合文章流或无关信息。</p><h2>更正与联系</h2><p>网站信息随时可能变化。如果发现描述错误、链接失效或权利问题，可以通过投稿页面提交说明，本站会进行人工核对。</p></article>
-</BaseLayout>
