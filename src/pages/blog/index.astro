@@ -1,0 +1,56 @@
+---
+import BlogLayout from '@/layouts/BlogLayout.astro';
+import { getBlogArticles, getBlogCategories } from '@/lib/blog';
+const blogArticles = await getBlogArticles();
+const blogCategories = getBlogCategories(blogArticles);
+const featured = blogArticles.find((article) => article.featured) || blogArticles[0];
+const recent = blogArticles.filter((article) => article.slug !== featured.slug);
+const formatDate = (date: string) => new Intl.DateTimeFormat('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' }).format(new Date(date));
+---
+<BlogLayout title="暮色手记｜独立开发与数字生活" description="记录独立开发、VPS、自托管、设计与数字生活。">
+  <section class="blog-hero">
+    <div class="blog-container blog-hero-grid">
+      <div class="blog-hero-copy">
+        <p class="eyebrow">TWILIGHT JOURNAL</p>
+        <h1>在暮色与代码之间，<br />留下一些真实的思考。</h1>
+        <p>写独立开发、VPS、自托管，也写工具之外的数字生活。更新不追求频率，只记录值得再次回看的事情。</p>
+        <div class="blog-hero-actions"><a class="button primary" href="#latest">开始阅读</a><a class="button" href="/blog/archive/">全部归档</a></div>
+      </div>
+      <aside class="author-card">
+        <span class="author-avatar">L</span>
+        <div><strong>关于这里</strong><p>一位独立开发者、VPS 爱好者和长期主义的数字园丁。</p></div>
+        <div class="author-stats"><span><b>{blogArticles.length}</b> 篇文章</span><span><b>{blogCategories.length}</b> 个主题</span></div>
+      </aside>
+    </div>
+  </section>
+
+  <div class="blog-container blog-home-grid">
+    <div>
+      <section class="featured-post">
+        <div class={`post-cover cover-${featured.accent}`}><span>FEATURED</span><strong>{featured.category}</strong></div>
+        <div class="featured-copy">
+          <p class="post-meta"><span>{featured.category}</span><time datetime={featured.publishedAt}>{formatDate(featured.publishedAt)}</time><span>{featured.readTime} 分钟阅读</span></p>
+          <h2><a href={`/blog/post/${featured.slug}/`}>{featured.title}</a></h2>
+          <p>{featured.excerpt}</p>
+          <a class="text-link" href={`/blog/post/${featured.slug}/`}>阅读全文 <span>→</span></a>
+        </div>
+      </section>
+
+      <section id="latest" class="latest-posts">
+        <div class="blog-section-title"><div><p class="eyebrow">LATEST NOTES</p><h2>最近写下</h2></div><a href="/blog/archive/">查看归档 →</a></div>
+        <div class="post-list">
+          {recent.map((article) => <article class="post-row">
+            <div class={`post-date date-${article.accent}`}><span>{new Date(article.publishedAt).getDate()}</span><small>{new Date(article.publishedAt).getMonth() + 1} 月</small></div>
+            <div><p class="post-meta"><span>{article.category}</span><span>{article.readTime} 分钟阅读</span></p><h3><a href={`/blog/post/${article.slug}/`}>{article.title}</a></h3><p>{article.excerpt}</p></div>
+            <a class="post-arrow" href={`/blog/post/${article.slug}/`} aria-label={`阅读${article.title}`}>↗</a>
+          </article>)}
+        </div>
+      </section>
+    </div>
+
+    <aside class="blog-sidebar">
+      <section class="sidebar-card"><p class="eyebrow">TOPICS</p><h2>写作主题</h2><div class="topic-list">{blogCategories.map((category) => <a href={`/blog/archive/#${category}`}>{category}<span>{blogArticles.filter((item) => item.category === category).length}</span></a>)}</div></section>
+      <section class="sidebar-card quote-card"><span>“</span><p>把复杂的东西慢慢做简单，把真正有用的东西留得更久。</p><small>— 暮色航标的建站原则</small></section>
+    </aside>
+  </div>
+</BlogLayout>

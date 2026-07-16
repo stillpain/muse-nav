@@ -1,0 +1,29 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import SearchHero from '@/components/SearchHero.astro';
+import CategoryNav from '@/components/CategoryNav.astro';
+import SiteGrid from '@/components/SiteGrid.astro';
+import { getCatalog } from '@/lib/content';
+import { publishedSites } from '@/lib/content/selectors';
+import { siteConfig } from '@/config';
+import { websiteJsonLd } from '@/lib/seo/jsonld';
+
+const catalog = await getCatalog();
+const sites = publishedSites(catalog);
+const categories = catalog.categories.filter((c) => c.status === 'published').sort((a,b) => a.sortOrder-b.sortOrder);
+---
+<BaseLayout title={`${siteConfig.name}｜精选实用网址导航`} description={siteConfig.description} jsonLd={websiteJsonLd()}>
+  <SearchHero />
+  <div id="catalog" class="container catalog-layout">
+    <CategoryNav categories={categories} sites={sites} />
+    <div>
+      {categories.map((category) => {
+        const categorySites = sites.filter((site) => site.category === category.slug);
+        return <section id={category.slug} class="category-section">
+          <div class="section-heading"><div><p class="eyebrow">{category.icon}</p><h2>{category.name}</h2><p>{category.description}</p></div><a class="button" href={`/category/${category.slug}/`}>查看分类</a></div>
+          <SiteGrid sites={categorySites.slice(0, 6)} />
+        </section>;
+      })}
+    </div>
+  </div>
+</BaseLayout>

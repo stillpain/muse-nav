@@ -1,0 +1,36 @@
+---
+import Header from '@/components/Header.astro';
+import Footer from '@/components/Footer.astro';
+import SeoHead from '@/components/SeoHead.astro';
+import '@/styles/global.scss';
+interface Props {
+  title: string; description: string; canonical?: string; robots?: string;
+  jsonLd?: Record<string, unknown> | Record<string, unknown>[];
+}
+const props = Astro.props;
+---
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="theme-color" content="#6857d9" />
+    <link rel="alternate" type="application/rss+xml" title="RSS" href="/feed.xml" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <SeoHead {...props} />
+    <script is:inline>
+      (() => {
+        const saved = localStorage.getItem('theme');
+        const theme = saved || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.dataset.theme = theme;
+      })();
+    </script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">跳到主要内容</a>
+    <Header currentPath={Astro.url.pathname} />
+    <main id="main-content" class="page-shell"><slot /></main>
+    <a class="icon-button back-search" href="/#search" aria-label="返回搜索">⌕</a>
+    <Footer />
+  </body>
+</html>

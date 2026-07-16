@@ -1,0 +1,31 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import Breadcrumbs from '@/components/Breadcrumbs.astro';
+import CategoryNav from '@/components/CategoryNav.astro';
+import SiteGrid from '@/components/SiteGrid.astro';
+import Pagination from '@/components/Pagination.astro';
+import { getCatalog } from '@/lib/content';
+import { publishedSites } from '@/lib/content/selectors';
+import { breadcrumbJsonLd, categoryJsonLd } from '@/lib/seo/jsonld';
+import { siteConfig } from '@/config';
+
+export async function getStaticPaths() {
+  const catalog = await getCatalog();
+  return catalog.categories.filter((category) => category.status === 'published').map((category) => ({ params: { slug: category.slug }, props: { category } }));
+}
+const { category } = Astro.props;
+const catalog = await getCatalog();
+const allSites = publishedSites(catalog);
+const sites = allSites.filter((site) => site.category === category.slug);
+const totalPages = Math.max(1, Math.ceil(sites.length / siteConfig.pageSize));
+const indexed = category.description.length >= 40 && sites.length >= 2;
+const crumbs = [{ name: '首页', url: siteConfig.siteUrl }, { name: category.name, url: `${siteConfig.siteUrl}/category/${category.slug}/` }];
+---
+<BaseLayout title={`${category.seoTitle}｜${siteConfig.name}`} description={category.seoDescription} robots={indexed ? 'index,follow' : 'noindex,follow'} jsonLd={[breadcrumbJsonLd(crumbs), categoryJsonLd(category, sites)]}>
+  <Breadcrumbs items={[{ name: '首页', href: '/' }, { name: category.name }]} />
+  <section class="container page-intro"><p class="eyebrow">Category</p><h1>{category.name}</h1><p class="lead">{category.description}</p></section>
+  <div class="container catalog-layout">
+    <CategoryNav categories={catalog.categories} sites={allSites} active={category.slug} />
+    <div><SiteGrid sites={sites.slice(0, siteConfig.pageSize)} /><Pagination current={1} total={totalPages} base={`/category/${category.slug}/`} /></div>
+  </div>
+</BaseLayout>

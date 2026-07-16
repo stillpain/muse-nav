@@ -1,0 +1,28 @@
+---
+const { currentPath = '/blog/' } = Astro.props;
+const links = [['/blog/', '文章'], ['/blog/archive/', '归档'], ['/blog/about/', '关于我'], ['/', '网址导航']];
+---
+<header class="site-header blog-header">
+  <div class="blog-container header-inner">
+    <a class="brand" href="/blog/" aria-label="暮色手记首页"><span class="brand-mark">暮</span><span><b>暮色手记</b><small>TWILIGHT JOURNAL</small></span></a>
+    <nav id="blog-nav" class="main-nav" aria-label="博客导航">
+      {links.map(([href, label]) => <a href={href} aria-current={currentPath === href ? 'page' : undefined}>{label}</a>)}
+    </nav>
+    <div class="header-actions">
+      <button id="blog-theme-toggle" class="icon-button" type="button" aria-label="切换深浅色模式">◐</button>
+      <button id="blog-menu-toggle" class="icon-button menu-button" type="button" aria-label="打开菜单" aria-controls="blog-nav" aria-expanded="false">☰</button>
+    </div>
+  </div>
+</header>
+<script is:inline>
+  document.querySelector('#blog-theme-toggle')?.addEventListener('click', () => {
+    const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+    document.documentElement.dataset.theme = next; localStorage.setItem('theme', next);
+  });
+  const trigger = document.querySelector('#blog-menu-toggle');
+  const menu = document.querySelector('#blog-nav');
+  trigger?.addEventListener('click', () => {
+    const open = menu?.classList.toggle('open') || false;
+    trigger.setAttribute('aria-expanded', String(open));
+  });
+</script>

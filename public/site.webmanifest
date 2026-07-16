@@ -1,0 +1,10 @@
+{
+  "name": "暮色导航",
+  "short_name": "暮色导航",
+  "description": "简洁、清楚的精选网址导航",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f7f7fb",
+  "theme_color": "#6857d9",
+  "lang": "zh-CN"
+}

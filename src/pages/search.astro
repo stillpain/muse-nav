@@ -1,0 +1,32 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import Breadcrumbs from '@/components/Breadcrumbs.astro';
+import { siteConfig } from '@/config';
+---
+<BaseLayout title={`站内搜索｜${siteConfig.name}`} description="搜索导航网站、分类和关键词。" robots="noindex,follow">
+  <Breadcrumbs items={[{name:'首页',href:'/'},{name:'站内搜索'}]} />
+  <section class="reading page-intro"><p class="eyebrow">Local search</p><h1>站内搜索</h1><p class="lead">搜索名称、简介、分类和标签。查询只在当前浏览器中处理。</p></section>
+  <section class="reading"><form id="local-search" class="search-box content-card" style="max-width:none; background:var(--surface); border-color:var(--border);"><input id="local-query" name="q" type="search" placeholder="例如：Docker、学习、开源" aria-label="站内搜索关键词" /><button>搜索</button></form><p id="result-count" class="muted" aria-live="polite"></p><div id="results" class="search-results"></div></section>
+</BaseLayout>
+<script is:inline>
+  const searchForm = document.querySelector('#local-search'); const queryInput = document.querySelector('#local-query');
+  const results = document.querySelector('#results'); const count = document.querySelector('#result-count'); let index;
+  const render = async (term) => {
+    if (!index) index = await fetch('/search-index.json').then((r) => r.json());
+    const normalized = term.trim().toLowerCase();
+    const matches = normalized ? index.filter((item) => item.text.includes(normalized)).slice(0, 30) : [];
+    results.replaceChildren(); count.textContent = normalized ? `找到 ${matches.length} 个结果` : '输入关键词开始搜索';
+    matches.forEach((item) => {
+      const card = document.createElement('article'); card.className = 'site-card';
+      const logo = document.createElement('div'); logo.className = 'site-logo'; logo.textContent = item.name.slice(0,2);
+      const body = document.createElement('div'); body.className = 'site-card-content';
+      const title = document.createElement('h3'); title.textContent = item.name;
+      const desc = document.createElement('p'); desc.textContent = item.description;
+      const link = document.createElement('a'); link.className = 'card-link'; link.href = item.href; link.setAttribute('aria-label', `打开 ${item.name}`);
+      body.append(title, desc); card.append(logo, body, link); results.append(card);
+    });
+    history.replaceState(null, '', normalized ? `?q=${encodeURIComponent(term)}` : location.pathname);
+  };
+  const initial = new URLSearchParams(location.search).get('q') || ''; queryInput.value = initial; render(initial);
+  searchForm.addEventListener('submit', (event) => { event.preventDefault(); render(queryInput.value); });
+</script>

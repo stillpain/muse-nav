@@ -1,0 +1,66 @@
+services:
+  db:
+    image: mariadb:11.4
+    restart: unless-stopped
+    command: --innodb-buffer-pool-size=256M --max-connections=60
+    environment:
+      MARIADB_DATABASE: ${DB_NAME:-wordpress}
+      MARIADB_USER: ${DB_USER:-wordpress}
+      MARIADB_PASSWORD: ${DB_PASSWORD:?required}
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?required}
+    volumes: [db_data:/var/lib/mysql]
+    healthcheck: { test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"], interval: 20s, timeout: 5s, retries: 10 }
+    networks: [backend]
+    logging: { driver: json-file, options: { max-size: "10m", max-file: "3" } }
+
+  redis:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    command: redis-server --maxmemory 128mb --maxmemory-policy allkeys-lru --save 60 1
+    volumes: [redis_data:/data]
+    networks: [backend]
+    logging: { driver: json-file, options: { max-size: "10m", max-file: "3" } }
+
+  wordpress:
+    image: wordpress:7.0.1-php8.3-fpm-alpine
+    restart: unless-stopped
+    depends_on: { db: { condition: service_healthy }, redis: { condition: service_started } }
+    environment:
+      WORDPRESS_DB_HOST: db:3306
+      WORDPRESS_DB_NAME: ${DB_NAME:-wordpress}
+      WORDPRESS_DB_USER: ${DB_USER:-wordpress}
+      WORDPRESS_DB_PASSWORD: ${DB_PASSWORD:?required}
+      WORDPRESS_CONFIG_EXTRA: |
+        define('WP_REDIS_HOST', 'redis');
+        define('DISALLOW_FILE_EDIT', true);
+        define('WP_DEBUG_DISPLAY', false);
+        define('FORCE_SSL_ADMIN', true);
+    volumes:
+      - wp_data:/var/www/html
+      - ../../wordpress/nav-content-api:/var/www/html/wp-content/plugins/nav-content-api:ro
+    networks: [backend]
+    logging: { driver: json-file, options: { max-size: "10m", max-file: "3" } }
+
+  caddy:
+    image: caddy:2.10-alpine
+    restart: unless-stopped
+    depends_on: [wordpress]
+    ports: ["80:80", "443:443"]
+    environment: { BLOG_DOMAIN: "${BLOG_DOMAIN:-blog.example.com}" }
+    volumes:
+      - wp_data:/var/www/html:ro
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks: [backend]
+    logging: { driver: json-file, options: { max-size: "10m", max-file: "3" } }
+
+networks:
+  backend:
+
+volumes:
+  db_data:
+  redis_data:
+  wp_data:
+  caddy_data:
+  caddy_config:

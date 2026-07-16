@@ -1,0 +1,19 @@
+{$BLOG_DOMAIN:blog.example.com} {
+    root * /var/www/html
+    encode zstd gzip
+    php_fastcgi wordpress:9000
+    file_server
+
+    @xmlrpc path /xmlrpc.php
+    respond @xmlrpc 403
+
+    @sensitive path /.env /.git/* /wp-config.php /readme.html
+    respond @sensitive 404
+
+    header {
+        X-Content-Type-Options nosniff
+        Referrer-Policy strict-origin-when-cross-origin
+        X-Frame-Options SAMEORIGIN
+        Permissions-Policy "camera=(), microphone=(), geolocation=()"
+    }
+}

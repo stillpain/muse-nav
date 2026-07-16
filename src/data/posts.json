@@ -1,0 +1,5 @@
+[
+  {"id":"git-deploy","slug":"git-deploy","url":"https://blog.example.com/git-deploy/","title":"用 Git 管理个人网站的发布与回滚","excerpt":"把源码、内容和部署版本放进可追踪的工作流。","cover":null,"categories":["开发记录"],"publishedAt":"2026-07-12T10:00:00+08:00"},
+  {"id":"docker-blog","slug":"docker-blog","url":"https://blog.example.com/docker-blog/","title":"在 2GB 内存 VPS 上部署博客","excerpt":"用清晰的服务边界控制内存、备份和升级风险。","cover":null,"categories":["VPS"],"publishedAt":"2026-07-10T10:00:00+08:00"},
+  {"id":"cloudflare-domain","slug":"cloudflare-domain","url":"https://blog.example.com/cloudflare-domain/","title":"域名、DNS 与 HTTPS 的长期维护清单","excerpt":"从购买域名到安全回源，整理容易被忽略的长期成本。","cover":null,"categories":["建站"],"publishedAt":"2026-07-08T10:00:00+08:00"}
+]

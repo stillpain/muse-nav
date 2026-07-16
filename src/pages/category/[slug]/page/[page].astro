@@ -1,0 +1,31 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import Breadcrumbs from '@/components/Breadcrumbs.astro';
+import CategoryNav from '@/components/CategoryNav.astro';
+import SiteGrid from '@/components/SiteGrid.astro';
+import Pagination from '@/components/Pagination.astro';
+import { getCatalog } from '@/lib/content';
+import { publishedSites } from '@/lib/content/selectors';
+import { siteConfig } from '@/config';
+import { breadcrumbJsonLd, categoryJsonLd } from '@/lib/seo/jsonld';
+
+export async function getStaticPaths() {
+  const catalog = await getCatalog(); const sites = publishedSites(catalog); const paths = [];
+  for (const category of catalog.categories.filter((c) => c.status === 'published')) {
+    const items = sites.filter((site) => site.category === category.slug);
+    const total = Math.ceil(items.length / siteConfig.pageSize);
+    for (let page = 2; page <= total; page++) paths.push({ params: { slug: category.slug, page: String(page) }, props: { category, page, total } });
+  }
+  return paths;
+}
+const { category, page, total } = Astro.props;
+const catalog = await getCatalog(); const allSites = publishedSites(catalog);
+const items = allSites.filter((site) => site.category === category.slug);
+const slice = items.slice((page - 1) * siteConfig.pageSize, page * siteConfig.pageSize);
+const url = `${siteConfig.siteUrl}/category/${category.slug}/page/${page}/`;
+---
+<BaseLayout title={`${category.name}网站导航－第 ${page} 页｜${siteConfig.name}`} description={`${category.seoDescription} 当前为第 ${page} 页。`} jsonLd={[breadcrumbJsonLd([{name:'首页',url:siteConfig.siteUrl},{name:category.name,url:`${siteConfig.siteUrl}/category/${category.slug}/`},{name:`第 ${page} 页`,url}]), categoryJsonLd(category, slice)]}>
+  <Breadcrumbs items={[{name:'首页',href:'/'},{name:category.name,href:`/category/${category.slug}/`},{name:`第 ${page} 页`}]} />
+  <section class="container page-intro"><p class="eyebrow">Category · Page {page}</p><h1>{category.name}</h1><p class="lead">{category.description}</p></section>
+  <div class="container catalog-layout"><CategoryNav categories={catalog.categories} sites={allSites} active={category.slug} /><div><SiteGrid sites={slice} /><Pagination current={page} total={total} base={`/category/${category.slug}/`} /></div></div>
+</BaseLayout>
