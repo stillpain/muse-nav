@@ -1,4 +1,14 @@
-{$BLOG_DOMAIN:cms.example.com} {
+{$SITE_DOMAIN:example.com} {
+    encode zstd gzip
+    reverse_proxy navigation:80
+}
+
+{$BLOG_DOMAIN:blog.example.com} {
+    encode zstd gzip
+    reverse_proxy blog:80
+}
+
+{$CMS_DOMAIN:cms.example.com} {
     root * /var/www/html
     encode zstd gzip
     php_fastcgi wordpress:9000
@@ -14,6 +24,7 @@
         X-Content-Type-Options nosniff
         Referrer-Policy strict-origin-when-cross-origin
         X-Frame-Options SAMEORIGIN
+        X-Robots-Tag "noindex, nofollow"
         Permissions-Policy "camera=(), microphone=(), geolocation=()"
     }
 }

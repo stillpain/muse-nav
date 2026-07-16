@@ -1,5 +1,8 @@
 node_modules
 dist
+apps/*/dist
+.astro
+apps/*/.astro
 .git
 .env
 coverage

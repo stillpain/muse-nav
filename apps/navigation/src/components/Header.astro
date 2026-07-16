@@ -1,7 +1,7 @@
 ---
 import { siteConfig } from '@/config';
 const { currentPath = '/' } = Astro.props;
-const links = [['/', '首页'], ['/#catalog', '分类'], ['/blog/', '博客'], ['/about/', '关于']];
+const links = [['/', '首页'], ['/#catalog', '分类'], [siteConfig.blogUrl, '博客'], ['/about/', '关于']];
 ---
 <header class="site-header">
   <div class="container header-inner">

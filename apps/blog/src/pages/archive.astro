@@ -10,7 +10,7 @@ const formatDate = (date: string) => new Intl.DateTimeFormat('zh-CN', { year: 'n
   <div class="blog-container archive-layout">
     <nav class="archive-nav" aria-label="文章分类">{blogCategories.map((category) => <a href={`#${category}`}>{category}</a>)}</nav>
     <div class="archive-groups">
-      {blogCategories.map((category) => <section id={category} class="archive-group"><div class="archive-heading"><h2>{category}</h2><span>{blogArticles.filter((item) => item.category === category).length}</span></div>{blogArticles.filter((item) => item.category === category).map((article) => <article><time datetime={article.publishedAt}>{formatDate(article.publishedAt)}</time><div><h3><a href={`/blog/post/${article.slug}/`}>{article.title}</a></h3><p>{article.excerpt}</p></div><span>{article.readTime} min</span></article>)}</section>)}
+      {blogCategories.map((category) => <section id={category} class="archive-group"><div class="archive-heading"><h2>{category}</h2><span>{blogArticles.filter((item) => item.category === category).length}</span></div>{blogArticles.filter((item) => item.category === category).map((article) => <article><time datetime={article.publishedAt}>{formatDate(article.publishedAt)}</time><div><h3><a href={`/post/${article.slug}/`}>{article.title}</a></h3><p>{article.excerpt}</p></div><span>{article.readTime} min</span></article>)}</section>)}
     </div>
   </div>
 </BlogLayout>

@@ -1,4 +1,4 @@
-name: Publish navigation image
+name: Publish frontend images
 on:
   push:
     branches: [main]
@@ -11,6 +11,13 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - service: navigation
+            dockerfile: Dockerfile
+          - service: blog
+            dockerfile: Dockerfile.blog
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
@@ -19,11 +26,15 @@ jobs:
       - uses: docker/build-push-action@v6
         with:
           context: .
+          file: ${{ matrix.dockerfile }}
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/twilight-beacon:${{ github.sha }}
-            ghcr.io/${{ github.repository_owner }}/twilight-beacon:stable
+            ghcr.io/${{ github.repository_owner }}/muse-${{ matrix.service }}:${{ github.sha }}
+            ghcr.io/${{ github.repository_owner }}/muse-${{ matrix.service }}:stable
           build-args: |
-            PUBLIC_SITE_URL=${{ vars.PUBLIC_SITE_URL }}
-            PUBLIC_BLOG_URL=${{ vars.PUBLIC_BLOG_URL }}
-            PUBLIC_SITE_NAME=${{ vars.PUBLIC_SITE_NAME }}
+            PUBLIC_SITE_URL=${{ vars.PUBLIC_SITE_URL || 'https://example.com' }}
+            PUBLIC_BLOG_URL=${{ vars.PUBLIC_BLOG_URL || 'https://blog.example.com' }}
+            PUBLIC_SITE_NAME=${{ vars.PUBLIC_SITE_NAME || '暮色导航' }}
+            PUBLIC_BLOG_NAME=${{ vars.PUBLIC_BLOG_NAME || '暮色手记' }}
+            CONTENT_SOURCE=${{ vars.CONTENT_SOURCE || 'local' }}
+            WORDPRESS_API_URL=${{ vars.WORDPRESS_API_URL || 'https://cms.example.com/wp-json' }}

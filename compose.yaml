@@ -7,6 +7,8 @@ services:
         PUBLIC_BLOG_URL: ${PUBLIC_BLOG_URL:-https://blog.example.com}
         PUBLIC_SITE_NAME: ${PUBLIC_SITE_NAME:-暮色导航}
         CONTENT_SOURCE: ${CONTENT_SOURCE:-local}
+        WORDPRESS_API_URL: ${WORDPRESS_API_URL:-https://cms.example.com/wp-json}
+        WORDPRESS_TIMEOUT_MS: ${WORDPRESS_TIMEOUT_MS:-8000}
     image: ${NAV_IMAGE:-twilight-beacon:local}
     restart: unless-stopped
     ports:
@@ -14,7 +16,7 @@ services:
       - "443:443"
     environment:
       SITE_DOMAIN: ${SITE_DOMAIN:-example.com}
-      BLOG_ORIGIN: ${BLOG_ORIGIN:-https://blog.example.com}
+      BLOG_ORIGIN: ${BLOG_ORIGIN:-https://cms.example.com}
     volumes:
       - caddy_data:/data
       - caddy_config:/config

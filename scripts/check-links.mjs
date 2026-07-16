@@ -1,6 +1,6 @@
 import { readFile, writeFile } from 'node:fs/promises';
 
-const sites = JSON.parse(await readFile(new URL('../src/data/sites.json', import.meta.url), 'utf8'));
+const sites = JSON.parse(await readFile(new URL('../apps/navigation/src/data/sites.json', import.meta.url), 'utf8'));
 const published = sites.filter((site) => site.status === 'published');
 const results = [];
 for (const site of published) {

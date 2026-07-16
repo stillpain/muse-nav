@@ -46,7 +46,7 @@ services:
     restart: unless-stopped
     depends_on: [wordpress]
     ports: ["80:80", "443:443"]
-    environment: { BLOG_DOMAIN: "${BLOG_DOMAIN:-blog.example.com}" }
+    environment: { BLOG_DOMAIN: "${BLOG_DOMAIN:-cms.example.com}" }
     volumes:
       - wp_data:/var/www/html:ro
       - ./Caddyfile:/etc/caddy/Caddyfile:ro

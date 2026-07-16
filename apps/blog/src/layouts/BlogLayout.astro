@@ -1,8 +1,9 @@
 ---
 import BlogHeader from '@/components/BlogHeader.astro';
 import SeoHead from '@/components/SeoHead.astro';
-import '@/styles/global.scss';
-interface Props { title: string; description: string; canonical?: string; robots?: string; }
+import { blogConfig } from '@/config';
+import '@muse/theme/global.scss';
+interface Props { title: string; description: string; canonical?: string; robots?: string; type?: 'website' | 'article'; jsonLd?: Record<string, unknown> | Record<string, unknown>[]; }
 const props = Astro.props;
 ---
 <!doctype html>
@@ -11,6 +12,8 @@ const props = Astro.props;
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width" />
     <meta name="theme-color" content="#6857d9" />
+    <link rel="alternate" type="application/rss+xml" title="暮色手记 RSS" href="/feed.xml" />
+    <link rel="manifest" href="/site.webmanifest" />
     <SeoHead {...props} />
     <script is:inline>
       (() => { const saved = localStorage.getItem('theme'); document.documentElement.dataset.theme = saved || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'); })();
@@ -20,6 +23,6 @@ const props = Astro.props;
     <a class="skip-link" href="#main-content">跳到主要内容</a>
     <BlogHeader currentPath={Astro.url.pathname} />
     <main id="main-content" class="blog-main"><slot /></main>
-    <footer class="blog-footer"><div class="blog-container"><span>暮色手记 · 写给未来的自己，也分享给恰好路过的人。</span><a href="/">返回网址导航 →</a></div></footer>
+    <footer class="blog-footer"><div class="blog-container"><span>暮色手记 · 写给未来的自己，也分享给恰好路过的人。</span><a href={blogConfig.navigationUrl}>返回暮色导航 →</a></div></footer>
   </body>
 </html>

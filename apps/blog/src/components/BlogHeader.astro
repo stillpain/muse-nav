@@ -1,10 +1,11 @@
 ---
-const { currentPath = '/blog/' } = Astro.props;
-const links = [['/blog/', '文章'], ['/blog/archive/', '归档'], ['/blog/about/', '关于我'], ['/', '网址导航']];
+import { blogConfig } from '@/config';
+const { currentPath = '/' } = Astro.props;
+const links = [['/', '文章'], ['/archive/', '归档'], ['/about/', '关于我'], [blogConfig.navigationUrl, '网址导航']];
 ---
 <header class="site-header blog-header">
   <div class="blog-container header-inner">
-    <a class="brand" href="/blog/" aria-label="暮色手记首页"><span class="brand-mark">暮</span><span><b>暮色手记</b><small>TWILIGHT JOURNAL</small></span></a>
+    <a class="brand" href="/" aria-label="暮色手记首页"><span class="brand-mark">暮</span><span><b>暮色手记</b><small>TWILIGHT JOURNAL</small></span></a>
     <nav id="blog-nav" class="main-nav" aria-label="博客导航">
       {links.map(([href, label]) => <a href={href} aria-current={currentPath === href ? 'page' : undefined}>{label}</a>)}
     </nav>

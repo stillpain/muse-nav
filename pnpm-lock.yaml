@@ -7,7 +7,47 @@ settings:
 importers:
 
   .:
+    devDependencies:
+      '@astrojs/check':
+        specifier: ^0.9.0
+        version: 0.9.9(prettier@3.9.5)(typescript@5.9.3)
+      '@types/node':
+        specifier: ^22.10.0
+        version: 22.20.1
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+      vitest:
+        specifier: ^3.0.0
+        version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.1)(sass@1.101.0)(yaml@2.9.0)
+
+  apps/blog:
     dependencies:
+      '@muse/theme':
+        specifier: workspace:*
+        version: link:../../packages/theme
+      astro:
+        specifier: ^5.0.0
+        version: 5.18.2(@types/node@22.20.1)(rollup@4.62.2)(sass@1.101.0)(typescript@5.9.3)(yaml@2.9.0)
+      sass:
+        specifier: ^1.83.0
+        version: 1.101.0
+    devDependencies:
+      '@astrojs/check':
+        specifier: ^0.9.0
+        version: 0.9.9(prettier@3.9.5)(typescript@5.9.3)
+      '@types/node':
+        specifier: ^22.10.0
+        version: 22.20.1
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+
+  apps/navigation:
+    dependencies:
+      '@muse/theme':
+        specifier: workspace:*
+        version: link:../../packages/theme
       astro:
         specifier: ^5.0.0
         version: 5.18.2(@types/node@22.20.1)(rollup@4.62.2)(sass@1.101.0)(typescript@5.9.3)(yaml@2.9.0)
@@ -27,9 +67,8 @@ importers:
       typescript:
         specifier: ^5.7.0
         version: 5.9.3
-      vitest:
-        specifier: ^3.0.0
-        version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.1)(sass@1.101.0)(yaml@2.9.0)
+
+  packages/theme: {}
 
 packages:
 

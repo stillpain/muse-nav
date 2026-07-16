@@ -1,0 +1,9 @@
+{
+  "name": "@muse/theme",
+  "version": "0.2.0",
+  "private": true,
+  "exports": {
+    "./global.scss": "./src/global.scss",
+    "./tokens.scss": "./src/tokens.scss"
+  }
+}

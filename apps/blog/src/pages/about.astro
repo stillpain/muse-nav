@@ -1,5 +1,6 @@
 ---
 import BlogLayout from '@/layouts/BlogLayout.astro';
+import { blogConfig } from '@/config';
 ---
 <BlogLayout title="关于｜暮色手记" description="关于暮色手记：独立开发、自托管与数字生活的长期记录。">
   <section class="blog-page-head"><div class="blog-container"><p class="eyebrow">ABOUT</p><h1>关于暮色手记</h1><p>把散落的服务器、代码和想法，慢慢整理成能够长期运行的东西。</p></div></section>
@@ -10,6 +11,6 @@ import BlogLayout from '@/layouts/BlogLayout.astro';
       <h2>为什么叫“暮色手记”</h2><p>暮色是一天从喧闹回到安静的时刻。这个名字和“暮色航标”导航站属于同一套个人品牌：导航保存坐标，博客保存沿途的判断和故事。</p>
       <h2>联系与转载</h2><p>联系邮箱、社交账号和转载协议将在正式域名确定后补充。当前页面中的文字和身份信息均为可替换的项目占位内容。</p>
     </article>
-    <aside class="about-profile"><span class="author-avatar large">暮</span><h2>暮色手记</h2><p>Independent maker<br />Digital gardener</p><div class="tag-cloud"><span>Astro</span><span>WordPress</span><span>VPS</span><span>Design</span></div><a class="button" href="/">访问暮色导航</a></aside>
+    <aside class="about-profile"><span class="author-avatar large">暮</span><h2>暮色手记</h2><p>Independent maker<br />Digital gardener</p><div class="tag-cloud"><span>Astro</span><span>WordPress</span><span>VPS</span><span>Design</span></div><a class="button" href={blogConfig.navigationUrl}>访问暮色导航</a></aside>
   </div>
 </BlogLayout>
