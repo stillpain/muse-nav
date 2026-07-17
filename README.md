@@ -1,67 +1,87 @@
-# 暮色导航与暮色手记
+# 暮色导航 / Muse
 
-面向公众的个人导航与独立博客：两个 Astro 静态前台共享一套“暮色”设计系统，WordPress 仅作为内容后台。单台 VPS 可以通过 Caddy 按三个域名分发服务。
+`musedaohang.com` 的自托管个人导航、博客与内容工作台。公开页面和 `/studio` 共用一个 SvelteKit 应用，内容保存在自己的 SQLite 数据库中；不依赖 WordPress、MariaDB 或 Redis，保存后立即生效。
 
-## 项目结构
+## 能做什么
 
-```text
-apps/navigation/       暮色导航，部署到 example.com
-apps/blog/             暮色手记，部署到 blog.example.com
-packages/theme/        两个前台共享的 SCSS 设计系统
-wordpress/             WordPress 内容中心插件
-infra/single-vps/      单台 VPS 三域名部署
-infra/blog/            WordPress 独立 VPS 部署
-```
+- 导航：搜索、分类、卡片、排序、草稿、精选和自动抓取网站 Icon。
+- 博客：草稿/发布、重点文章、封面上传和轻量文本写作。
+- 外观实验室：站名、欢迎语、三组主题色、圆角、内容密度和背景图。
+- 媒体：Icon、博客封面和背景图全部保存到自己的数据卷。
+- 运维：Caddy 自动 HTTPS、健康检查、日志轮转和一致性备份脚本。
 
-博客在自己的域名根路径生成页面：
+## 结构
 
 ```text
-https://blog.example.com/
-https://blog.example.com/archive/
-https://blog.example.com/post/[slug]/
+apps/muse/             SvelteKit 公开站与暮色工作台
+seed/                  首次启动时导入的第一版导航数据
+infra/single-vps/      musedaohang.com 单 VPS 部署配置
+Dockerfile             Node 24 生产镜像
 ```
 
-WordPress 后台使用 `https://cms.example.com/`，不会把默认 WordPress 主题暴露为公开博客前台。
+运行后页面：
+
+```text
+https://musedaohang.com/          暮色导航
+https://musedaohang.com/blog      暮色博客
+https://musedaohang.com/studio    暮色工作台（需登录）
+```
 
 ## 本地开发
 
+需要 Node.js 24 和 pnpm 11：
+
 ```bash
 pnpm install
-pnpm dev             # 导航，http://localhost:4321
-pnpm dev:blog        # 博客，http://localhost:4322
-pnpm test
+MUSE_ADMIN_PASSWORD='至少12位密码' \
+MUSE_SESSION_SECRET='至少32位随机字符' \
+pnpm dev
+```
+
+生产检查：
+
+```bash
+pnpm check
 pnpm build
 ```
 
-默认 `CONTENT_SOURCE=local`：导航读取 `apps/navigation/src/data/`，博客读取 `apps/blog/src/data/blog.ts`。设置 `CONTENT_SOURCE=wordpress` 和 `WORDPRESS_API_URL` 后，构建时从 WordPress REST API 获取内容；后台不可用时博客回退到本地内容。
-
-## 单 VPS 部署
+## 新服务器部署
 
 ```bash
-cd infra/single-vps
+git clone https://github.com/stillpain/muse-nav.git /opt/muse-nav
+cd /opt/muse-nav/infra/single-vps
 cp .env.example .env
-# 修改三个域名和两个数据库密码
+nano .env
 docker compose config -q
 docker compose up -d --build
+docker compose ps
 ```
 
-需要提前将以下 DNS 记录指向 VPS：
+已有第一版服务器请严格按照 [升级文档](infra/single-vps/UPGRADE-V2.md) 操作；它包含 WordPress 备份、替换、验证和旧卷清理顺序。
 
-- `example.com`：暮色导航
-- `blog.example.com`：暮色手记
-- `cms.example.com`：WordPress 后台与 REST API
+## 数据与备份
 
-Caddy 自动申请 HTTPS 证书。Cloudflare 应使用 Full (Strict)，数据库和 Redis 只存在于 Docker 内网。
+持久数据都在 Docker 卷 `muse_data`：
 
-## WordPress
+```text
+muse.db       SQLite 数据库
+muse.db-wal   SQLite WAL（运行时可能存在）
+media/        网站 Icon、封面和背景图
+```
 
-首次打开 `cms.example.com` 完成 WordPress 初始化，然后启用 `nav-content-api` 插件。进入“暮色内容 → 后台设置”填写导航域名、博客域名、投稿 Origin 和 Turnstile Secret。
-
-WordPress 内容发生变化后，需要重新构建博客静态镜像：
+一致性备份：
 
 ```bash
-docker compose build blog
-docker compose up -d blog
+cd /opt/muse-nav/infra/single-vps
+chmod +x backup.sh
+sudo ./backup.sh
 ```
 
-发布前必须运行 `pnpm test` 与 `pnpm build`。
+默认备份到 `/opt/muse-backups`，保留 30 天。建议再使用 Restic 将该目录同步到另一台 VPS 或对象存储。
+
+## 安全说明
+
+- `.env` 不得提交 Git；管理员密码至少 12 位，Session Secret 至少 32 位。
+- `/studio` 设置了 `noindex`，登录 Cookie 为 HttpOnly、SameSite=Lax，HTTPS 下启用 Secure。
+- Icon 抓取拒绝内网/保留地址，并限制请求时间、类型和大小。
+- 生产环境只公开 Caddy 的 80/443，应用端口仅在 Docker 网络中可见。

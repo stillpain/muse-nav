@@ -10,16 +10,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
-        with: { version: 11 }
       - uses: actions/setup-node@v4
-        with: { node-version: 22, cache: pnpm }
+        with: { node-version: 24, cache: pnpm }
       - run: pnpm install --frozen-lockfile
-      - run: pnpm test
+      - run: pnpm check
       - run: pnpm build
       - uses: actions/upload-artifact@v4
         with:
-          name: static-sites
-          path: |
-            apps/navigation/dist
-            apps/blog/dist
+          name: muse-server
+          path: apps/muse/build
           retention-days: 7

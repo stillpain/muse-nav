@@ -6,3 +6,7 @@ apps/*/.astro
 .git
 .env
 coverage
+data
+backups
+apps/muse/build
+apps/muse/.svelte-kit

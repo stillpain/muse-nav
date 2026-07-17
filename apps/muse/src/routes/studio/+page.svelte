@@ -1,0 +1,4 @@
+<script lang="ts">let {data}=$props();</script><svelte:head><title>概览｜暮色工作台</title></svelte:head>
+<header class="studio-head"><div><p class="eyebrow">OVERVIEW</p><h1>晚上好，继续搭建你的坐标。</h1><p>内容保存后立即生效，不需要重新构建容器。</p></div><a class="primary" href="/studio/sites#editor">＋ 添加网站</a></header>
+<div class="stats"><a href="/studio/sites"><span>导航收藏</span><b>{data.siteCount}</b><small>个网站</small></a><a href="/studio/categories"><span>分类</span><b>{data.categoryCount}</b><small>组坐标</small></a><a href="/studio/posts"><span>博客文章</span><b>{data.postCount}</b><small>{data.drafts} 篇草稿</small></a></div>
+<section class="studio-panel welcome"><div><span class="big-mark">暮</span></div><div><h2>这里就是你的网站控制台</h2><p>导航、文章和主题都由你掌控。数据保存在自己的服务器上，并可完整导出和备份。</p><div class="quick"><a href="/studio/sites">整理导航</a><a href="/studio/posts">开始写作</a><a href="/studio/appearance">调整风格</a></div></div></section>

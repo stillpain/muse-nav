@@ -1,30 +1,19 @@
-{$SITE_DOMAIN:example.com} {
+{$SITE_DOMAIN:musedaohang.com} {
     encode zstd gzip
-    reverse_proxy navigation:80
-}
+    reverse_proxy muse:3000
 
-{$BLOG_DOMAIN:blog.example.com} {
-    encode zstd gzip
-    reverse_proxy blog:80
-}
-
-{$CMS_DOMAIN:cms.example.com} {
-    root * /var/www/html
-    encode zstd gzip
-    php_fastcgi wordpress:9000
-    file_server
-
-    @xmlrpc path /xmlrpc.php
-    respond @xmlrpc 403
-
-    @sensitive path /.env /.git/* /wp-config.php /readme.html
-    respond @sensitive 404
+    @studio path /studio /studio/*
+    header @studio X-Robots-Tag "noindex, nofollow"
 
     header {
         X-Content-Type-Options nosniff
         Referrer-Policy strict-origin-when-cross-origin
-        X-Frame-Options SAMEORIGIN
-        X-Robots-Tag "noindex, nofollow"
+        X-Frame-Options DENY
         Permissions-Policy "camera=(), microphone=(), geolocation=()"
+        -Server
     }
+}
+
+{$WWW_DOMAIN:www.musedaohang.com} {
+    redir https://{$SITE_DOMAIN:musedaohang.com}{uri} permanent
 }

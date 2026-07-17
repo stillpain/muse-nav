@@ -1,7 +1,0 @@
----
-import BaseLayout from '@/layouts/BaseLayout.astro'; import Breadcrumbs from '@/components/Breadcrumbs.astro'; import { getCatalog } from '@/lib/content'; import { siteConfig } from '@/config';
-const catalog = await getCatalog(); const friends = catalog.friends.filter((item) => item.status === 'published').sort((a,b) => a.sortOrder-b.sortOrder); const indexed = friends.length >= 3;
----
-<BaseLayout title={`友情链接｜${siteConfig.name}`} description="与暮色导航互相连接的个人网站和长期项目。" robots={indexed ? 'index,follow' : 'noindex,follow'}>
-  <Breadcrumbs items={[{name:'首页',href:'/'},{name:'友情链接'}]} /><section class="container page-intro"><p class="eyebrow">Friends</p><h1>认真更新的网站，值得彼此照亮。</h1><p class="lead">友链由人工审核，不出售权重，也不接受与本站内容无关的批量交换。</p></section><section class="container" style="padding-bottom:72px;"><div class="site-grid">{friends.map((friend) => <article class="site-card"><div class="site-logo">{friend.name.slice(0,2)}</div><div class="site-card-content"><h3>{friend.name}</h3><p>{friend.description}</p></div><a class="card-link" href={friend.url} target="_blank" rel="noopener" aria-label={`访问 ${friend.name}`}></a></article>)}</div></section>
-</BaseLayout>
