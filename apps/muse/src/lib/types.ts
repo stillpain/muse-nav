@@ -7,8 +7,24 @@ export type Site = {
 export type Category = { id: number; name: string; slug: string; description: string; color: string; sortOrder: number };
 export type Post = {
   id: number; title: string; slug: string; excerpt: string; content: string; cover: string;
-  status: 'published' | 'draft'; featured: number; publishedAt: string; updatedAt: string;
+  status: 'published' | 'draft'; featured: number; categoryId?: number; categoryName?: string; categorySlug?: string;
+  publishedAt: string; updatedAt: string;
 };
+
+export type PostCategory = { id: number; name: string; slug: string; description: string; color: string; sortOrder: number; postCount?: number };
+
+export type User = {
+  id: number; username: string; email: string; role: 'member' | 'admin'; status: 'active' | 'disabled';
+  createdAt: string; lastLoginAt: string;
+};
+
+export type Comment = {
+  id: number; postId: number; postTitle?: string; postSlug?: string; userId?: number; authorName: string;
+  content: string; status: 'pending' | 'published' | 'hidden'; mentionsAdmin: number; adminRead: number;
+  createdAt: string;
+};
+
+export type WordCloudItem = { word: string; count: number; weight: number };
 
 export type Appearance = {
   siteName: string; blogName: string; heroLine: string; brand: string; secondary: string;

@@ -1,0 +1,3 @@
+import { deleteComment,listAllComments,markCommentRead,updateComment } from '$lib/server/db';
+export const load=()=>({comments:listAllComments()});
+export const actions={publish:async({request})=>{const f=await request.formData();updateComment(Number(f.get('id')),'published');return{success:true}},hide:async({request})=>{const f=await request.formData();updateComment(Number(f.get('id')),'hidden');return{success:true}},read:async({request})=>{const f=await request.formData();markCommentRead(Number(f.get('id')));return{success:true}},delete:async({request})=>{const f=await request.formData();deleteComment(Number(f.get('id')));return{success:true}}};
