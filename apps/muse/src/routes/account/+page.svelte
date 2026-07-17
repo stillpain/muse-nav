@@ -1,0 +1,3 @@
+<script lang="ts">let{data}=$props();</script>
+<svelte:head><title>我的账号｜暮色手记</title></svelte:head>
+<main class="account-dashboard shell"><header><div><p class="eyebrow">MY ACCOUNT</p><h1>{data.accountUser.username}</h1><p>{data.accountUser.email}</p></div><form method="POST" action="?/logout"><button class="quiet-button">退出登录</button></form></header><section><h2>我的评论</h2>{#if data.comments.length}<div class="my-comments">{#each data.comments as comment}<a href={`/blog/${comment.postSlug}#comments`}><small>{new Date(comment.createdAt).toLocaleString('zh-CN')} · {comment.status==='published'?'已展示':comment.status==='pending'?'待审核':'已隐藏'}</small><b>{comment.postTitle}</b><p>{comment.content}</p></a>{/each}</div>{:else}<div class="empty">还没有留下评论。</div>{/if}</section></main>

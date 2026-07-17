@@ -1,3 +1,9 @@
-<script lang="ts">let { data }=$props();</script>
+<script lang="ts">let{data,form}=$props();</script>
 <svelte:head><title>{data.post.title}｜{data.appearance.blogName}</title><meta name="description" content={data.post.excerpt} /></svelte:head>
-<main><header class="article-head" style={data.post.cover?`background-image:linear-gradient(#19172bcc,#3d347acc),url('${data.post.cover}')`:''}><p class="eyebrow">{new Date(data.post.publishedAt).toLocaleDateString('zh-CN')}</p><h1>{data.post.title}</h1><p>{data.post.excerpt}</p></header><article class="prose">{@html data.html}</article></main>
+<main><header class="article-head" style={data.post.cover?`background-image:linear-gradient(#19172bcc,#3d347acc),url('${data.post.cover}')`:''}><div class="article-meta"><a href={`/blog?category=${data.post.categorySlug}`}>{data.post.categoryName||'随笔'}</a><span>·</span><time>{new Date(data.post.publishedAt).toLocaleDateString('zh-CN')}</time></div><h1>{data.post.title}</h1><p>{data.post.excerpt}</p></header><article class="prose">{@html data.html}</article>
+  <section class="comments shell" id="comments"><header><div><p class="eyebrow">DISCUSSION</p><h2>评论 <span>{data.comments.length}</span></h2></div>{#if data.user}<a href="/account">以 {data.user.username} 登录</a>{:else}<a href="/account/login">登录后评论免审核</a>{/if}</header>
+    {#if form?.message}<div class:success={form.success} class="notice comment-notice">{form.message}</div>{/if}
+    <form method="POST" action="?/comment#comments" class="comment-form"><input class="honeypot" name="website" tabindex="-1" autocomplete="off" />{#if !data.user}<label>游客昵称<input name="guestName" maxlength="20" required placeholder="怎么称呼你" /></label>{/if}<label>留下评论<textarea name="content" rows="5" maxlength="2000" required placeholder="友善交流，也可以用 @站长 提醒我"></textarea></label><div><small>{data.user?'评论会直接展示':'游客评论提交后需要审核'}</small><button class="primary">发表评论</button></div></form>
+    {#if data.comments.length}<div class="comment-list">{#each data.comments as comment}<article><span>{comment.authorName.slice(0,1)}</span><div><header><b>{comment.authorName}</b><time>{new Date(comment.createdAt).toLocaleString('zh-CN')}</time></header><p>{comment.content}</p></div></article>{/each}</div>{:else}<div class="empty comment-empty">还没有评论，来留下第一条吧。</div>{/if}
+  </section>
+</main>

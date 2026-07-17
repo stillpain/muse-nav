@@ -1,7 +1,7 @@
 import { DatabaseSync } from 'node:sqlite';
 import { mkdirSync, readFileSync, existsSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
-import type { Appearance, Category, Post, Site } from '$lib/types';
+import { resolve } from 'node:path';
+import type { Appearance, Category, Comment, Post, PostCategory, Site, User, WordCloudItem } from '$lib/types';
 
 const dataDir = resolve(process.env.MUSE_DATA_DIR || 'data');
 const dbFile = resolve(dataDir, 'muse.db');
@@ -29,8 +29,29 @@ db.exec(`
     content TEXT NOT NULL DEFAULT '', cover TEXT NOT NULL DEFAULT '', status TEXT NOT NULL DEFAULT 'draft',
     featured INTEGER NOT NULL DEFAULT 0, published_at TEXT NOT NULL, updated_at TEXT NOT NULL
   );
+  CREATE TABLE IF NOT EXISTS post_categories (
+    id INTEGER PRIMARY KEY, name TEXT NOT NULL, slug TEXT NOT NULL UNIQUE, description TEXT NOT NULL DEFAULT '',
+    color TEXT NOT NULL DEFAULT '#6857d9', sort_order INTEGER NOT NULL DEFAULT 100
+  );
+  CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY, username TEXT NOT NULL COLLATE NOCASE UNIQUE, email TEXT NOT NULL COLLATE NOCASE UNIQUE,
+    password_hash TEXT NOT NULL, role TEXT NOT NULL DEFAULT 'member' CHECK(role IN ('member','admin')),
+    status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active','disabled')),
+    created_at TEXT NOT NULL, last_login_at TEXT NOT NULL DEFAULT ''
+  );
+  CREATE TABLE IF NOT EXISTS comments (
+    id INTEGER PRIMARY KEY, post_id INTEGER NOT NULL, user_id INTEGER, guest_name TEXT NOT NULL DEFAULT '',
+    content TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','published','hidden')),
+    mentions_admin INTEGER NOT NULL DEFAULT 0, admin_read INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL,
+    FOREIGN KEY(post_id) REFERENCES posts(id) ON DELETE CASCADE, FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE SET NULL
+  );
+  CREATE INDEX IF NOT EXISTS comments_post_idx ON comments(post_id,status,created_at);
+  CREATE INDEX IF NOT EXISTS comments_admin_idx ON comments(admin_read,mentions_admin,created_at);
   CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
 `);
+
+const postColumns = db.prepare('PRAGMA table_info(posts)').all() as Array<{name:string}>;
+if (!postColumns.some((column) => column.name === 'category_id')) db.exec('ALTER TABLE posts ADD COLUMN category_id INTEGER REFERENCES post_categories(id)');
 
 const defaults: Appearance = {
   siteName: '暮色导航', blogName: '暮色手记', heroLine: '暮色落下，仍有坐标发亮。',
@@ -68,6 +89,19 @@ function seed() {
 }
 seed();
 
+function seedPostCategories() {
+  const count = Number((db.prepare('SELECT COUNT(*) AS count FROM post_categories').get() as {count:number}).count);
+  if (!count) {
+    const insert = db.prepare('INSERT INTO post_categories(name,slug,description,color,sort_order) VALUES(?,?,?,?,?)');
+    insert.run('折腾记录','build-log','技术实践、工具与部署记录','#6857d9',10);
+    insert.run('思考随笔','thoughts','关于产品、生活和长期主义的思考','#2a9d8f',20);
+    insert.run('生活片段','life','值得慢慢写下来的日常片段','#e9a23b',30);
+  }
+  const first = db.prepare('SELECT id FROM post_categories ORDER BY sort_order,id LIMIT 1').get() as {id:number}|undefined;
+  if (first) db.prepare('UPDATE posts SET category_id=? WHERE category_id IS NULL').run(first.id);
+}
+seedPostCategories();
+
 export function getAppearance(): Appearance {
   const rows = db.prepare('SELECT key,value FROM settings').all() as Array<{key:string;value:string}>;
   return { ...defaults, ...Object.fromEntries(rows.map((row) => [row.key, row.value])) } as Appearance;
@@ -95,17 +129,76 @@ export function saveSite(input: Omit<Site,'id'|'createdAt'|'updatedAt'> & {id?:n
 }
 export function deleteSite(id:number) { db.prepare('DELETE FROM sites WHERE id=?').run(id); }
 
-export function listPosts(includeDrafts=false): Post[] {
-  const where = includeDrafts ? '' : "WHERE status='published'";
-  return db.prepare(`SELECT id,title,slug,excerpt,content,cover,status,featured,published_at AS publishedAt,updated_at AS updatedAt FROM posts ${where} ORDER BY featured DESC,published_at DESC`).all() as unknown as Post[];
+export function listPostCategories(): PostCategory[] {
+  return db.prepare(`SELECT pc.id,pc.name,pc.slug,pc.description,pc.color,pc.sort_order AS sortOrder,
+    COUNT(p.id) AS postCount FROM post_categories pc LEFT JOIN posts p ON p.category_id=pc.id AND p.status='published'
+    GROUP BY pc.id ORDER BY pc.sort_order,pc.name`).all() as unknown as PostCategory[];
 }
-export function getPostBySlug(slug:string) { return db.prepare("SELECT id,title,slug,excerpt,content,cover,status,featured,published_at AS publishedAt,updated_at AS updatedAt FROM posts WHERE slug=? AND status='published'").get(slug) as unknown as Post|undefined; }
-export function getPost(id:number) { return db.prepare('SELECT id,title,slug,excerpt,content,cover,status,featured,published_at AS publishedAt,updated_at AS updatedAt FROM posts WHERE id=?').get(id) as unknown as Post|undefined; }
+export function savePostCategory(input: Omit<PostCategory,'id'|'postCount'> & {id?:number}) {
+  if (input.id) db.prepare('UPDATE post_categories SET name=?,slug=?,description=?,color=?,sort_order=? WHERE id=?').run(input.name,input.slug,input.description,input.color,input.sortOrder,input.id);
+  else db.prepare('INSERT INTO post_categories(name,slug,description,color,sort_order) VALUES(?,?,?,?,?)').run(input.name,input.slug,input.description,input.color,input.sortOrder);
+}
+export function deletePostCategory(id:number) { db.prepare('DELETE FROM post_categories WHERE id=? AND NOT EXISTS(SELECT 1 FROM posts WHERE category_id=?)').run(id,id); }
+
+export function listPosts(includeDrafts=false, categorySlug=''): Post[] {
+  const conditions = includeDrafts ? [] : ["p.status='published'"];
+  const params: string[] = [];
+  if (categorySlug) { conditions.push('pc.slug=?'); params.push(categorySlug); }
+  const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+  return db.prepare(`SELECT p.id,p.title,p.slug,p.excerpt,p.content,p.cover,p.status,p.featured,p.category_id AS categoryId,
+    pc.name AS categoryName,pc.slug AS categorySlug,p.published_at AS publishedAt,p.updated_at AS updatedAt
+    FROM posts p LEFT JOIN post_categories pc ON pc.id=p.category_id ${where}
+    ORDER BY p.featured DESC,p.published_at DESC`).all(...params) as unknown as Post[];
+}
+export function getPostBySlug(slug:string) { return db.prepare("SELECT p.id,p.title,p.slug,p.excerpt,p.content,p.cover,p.status,p.featured,p.category_id AS categoryId,pc.name AS categoryName,pc.slug AS categorySlug,p.published_at AS publishedAt,p.updated_at AS updatedAt FROM posts p LEFT JOIN post_categories pc ON pc.id=p.category_id WHERE p.slug=? AND p.status='published'").get(slug) as unknown as Post|undefined; }
+export function getPost(id:number) { return db.prepare('SELECT p.id,p.title,p.slug,p.excerpt,p.content,p.cover,p.status,p.featured,p.category_id AS categoryId,pc.name AS categoryName,pc.slug AS categorySlug,p.published_at AS publishedAt,p.updated_at AS updatedAt FROM posts p LEFT JOIN post_categories pc ON pc.id=p.category_id WHERE p.id=?').get(id) as unknown as Post|undefined; }
 export function savePost(input: Omit<Post,'id'|'updatedAt'> & {id?:number}) {
   const now = new Date().toISOString();
-  if (input.id) db.prepare('UPDATE posts SET title=?,slug=?,excerpt=?,content=?,cover=?,status=?,featured=?,published_at=?,updated_at=? WHERE id=?').run(input.title,input.slug,input.excerpt,input.content,input.cover,input.status,input.featured,input.publishedAt,now,input.id);
-  else db.prepare('INSERT INTO posts(title,slug,excerpt,content,cover,status,featured,published_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?)').run(input.title,input.slug,input.excerpt,input.content,input.cover,input.status,input.featured,input.publishedAt,now);
+  if (input.id) db.prepare('UPDATE posts SET title=?,slug=?,excerpt=?,content=?,cover=?,status=?,featured=?,category_id=?,published_at=?,updated_at=? WHERE id=?').run(input.title,input.slug,input.excerpt,input.content,input.cover,input.status,input.featured,input.categoryId||null,input.publishedAt,now,input.id);
+  else db.prepare('INSERT INTO posts(title,slug,excerpt,content,cover,status,featured,category_id,published_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?)').run(input.title,input.slug,input.excerpt,input.content,input.cover,input.status,input.featured,input.categoryId||null,input.publishedAt,now);
 }
 export function deletePost(id:number) { db.prepare('DELETE FROM posts WHERE id=?').run(id); }
+
+const cloudStopWords = new Set(['我们','你们','他们','这个','那个','这些','那些','一个','一种','就是','还是','可以','没有','不是','什么','因为','所以','如果','但是','然后','已经','自己','这里','进行','需要','值得','慢慢','下来','事情','内容','文章','博客','the','and','for','with','this','that','from','are','was']);
+export function getWordCloud(): WordCloudItem[] {
+  const posts = listPosts(false);
+  const frequencies = new Map<string,number>();
+  const segmenter = new Intl.Segmenter('zh-CN',{granularity:'word'});
+  for (const post of posts) {
+    const text = `${post.title} ${post.title} ${post.excerpt} ${post.content}`.toLowerCase();
+    for (const item of segmenter.segment(text)) {
+      const word = item.segment.trim().replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu,'');
+      if (!item.isWordLike || word.length < 2 || word.length > 16 || cloudStopWords.has(word) || /^\d+$/.test(word)) continue;
+      frequencies.set(word,(frequencies.get(word)||0)+1);
+    }
+  }
+  const ranked = [...frequencies.entries()].sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0],'zh-CN')).slice(0,28);
+  const max = ranked[0]?.[1] || 1;
+  return ranked.map(([word,count])=>({word,count,weight:Math.round(1+(count/max)*4)}));
+}
+
+export function createUser(input:{username:string;email:string;passwordHash:string}): User {
+  const now = new Date().toISOString();
+  const result = db.prepare("INSERT INTO users(username,email,password_hash,role,status,created_at,last_login_at) VALUES(?,?,?,'member','active',?,?)").run(input.username,input.email,input.passwordHash,now,now);
+  return getUserById(Number(result.lastInsertRowid))!;
+}
+export function getUserForLogin(identity:string) { return db.prepare("SELECT id,username,email,password_hash AS passwordHash,role,status,created_at AS createdAt,last_login_at AS lastLoginAt FROM users WHERE email=? COLLATE NOCASE OR username=? COLLATE NOCASE").get(identity,identity) as unknown as (User & {passwordHash:string})|undefined; }
+export function getUserById(id:number) { return db.prepare("SELECT id,username,email,role,status,created_at AS createdAt,last_login_at AS lastLoginAt FROM users WHERE id=?").get(id) as unknown as User|undefined; }
+export function touchUserLogin(id:number) { db.prepare('UPDATE users SET last_login_at=? WHERE id=?').run(new Date().toISOString(),id); }
+export function listUsers(): User[] { return db.prepare("SELECT id,username,email,role,status,created_at AS createdAt,last_login_at AS lastLoginAt FROM users ORDER BY created_at DESC").all() as unknown as User[]; }
+export function updateUserStatus(id:number,status:'active'|'disabled') { db.prepare('UPDATE users SET status=? WHERE id=?').run(status,id); }
+export function userCount() { return Number((db.prepare('SELECT COUNT(*) AS count FROM users').get() as {count:number}).count); }
+
+export function createComment(input:{postId:number;userId?:number;guestName?:string;content:string;status:'pending'|'published'}) {
+  const mentions = /@(暮色|站长|管理员)/i.test(input.content) ? 1 : 0;
+  db.prepare('INSERT INTO comments(post_id,user_id,guest_name,content,status,mentions_admin,admin_read,created_at) VALUES(?,?,?,?,?,?,0,?)').run(input.postId,input.userId||null,input.guestName||'',input.content,input.status,mentions,new Date().toISOString());
+}
+export function listPostComments(postId:number): Comment[] { return db.prepare(`SELECT c.id,c.post_id AS postId,c.user_id AS userId,COALESCE(u.username,c.guest_name,'游客') AS authorName,c.content,c.status,c.mentions_admin AS mentionsAdmin,c.admin_read AS adminRead,c.created_at AS createdAt FROM comments c LEFT JOIN users u ON u.id=c.user_id WHERE c.post_id=? AND c.status='published' ORDER BY c.created_at`).all(postId) as unknown as Comment[]; }
+export function listAllComments(): Comment[] { return db.prepare(`SELECT c.id,c.post_id AS postId,p.title AS postTitle,p.slug AS postSlug,c.user_id AS userId,COALESCE(u.username,c.guest_name,'游客') AS authorName,c.content,c.status,c.mentions_admin AS mentionsAdmin,c.admin_read AS adminRead,c.created_at AS createdAt FROM comments c JOIN posts p ON p.id=c.post_id LEFT JOIN users u ON u.id=c.user_id ORDER BY c.created_at DESC`).all() as unknown as Comment[]; }
+export function listUserComments(userId:number): Comment[] { return db.prepare(`SELECT c.id,c.post_id AS postId,p.title AS postTitle,p.slug AS postSlug,c.user_id AS userId,u.username AS authorName,c.content,c.status,c.mentions_admin AS mentionsAdmin,c.admin_read AS adminRead,c.created_at AS createdAt FROM comments c JOIN posts p ON p.id=c.post_id JOIN users u ON u.id=c.user_id WHERE c.user_id=? ORDER BY c.created_at DESC`).all(userId) as unknown as Comment[]; }
+export function updateComment(id:number,status:'pending'|'published'|'hidden') { db.prepare('UPDATE comments SET status=?,admin_read=1 WHERE id=?').run(status,id); }
+export function markCommentRead(id:number) { db.prepare('UPDATE comments SET admin_read=1 WHERE id=?').run(id); }
+export function deleteComment(id:number) { db.prepare('DELETE FROM comments WHERE id=?').run(id); }
+export function commentStats() { return db.prepare("SELECT COUNT(*) AS total,SUM(CASE WHEN admin_read=0 THEN 1 ELSE 0 END) AS unread,SUM(CASE WHEN admin_read=0 AND mentions_admin=1 THEN 1 ELSE 0 END) AS mentions FROM comments").get() as {total:number;unread:number;mentions:number}; }
 
 export function databasePath() { return dbFile; }

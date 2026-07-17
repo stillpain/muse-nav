@@ -1,0 +1,3 @@
+<script lang="ts">let{form}=$props();</script>
+<svelte:head><title>读者登录｜暮色手记</title></svelte:head>
+<main class="account-page"><section class="account-card"><p class="eyebrow">READER ACCOUNT</p><h1>登录暮色手记</h1><p>登录后发表评论会直接展示，也可以集中查看自己的留言。</p>{#if form?.message}<div class="form-error">{form.message}</div>{/if}<form method="POST" class="account-form"><label>用户名或邮箱<input name="identity" value={form?.identity||''} autocomplete="username" required /></label><label>密码<input name="password" type="password" autocomplete="current-password" required /></label><button class="primary">登录</button></form><p class="account-switch">还没有账号？<a href="/account/register">创建读者账号</a></p></section></main>
