@@ -56,7 +56,10 @@ if (!postColumns.some((column) => column.name === 'category_id')) db.exec('ALTER
 const defaults: Appearance = {
   siteName: '暮色导航', blogName: '暮色手记', heroLine: '暮色落下，仍有坐标发亮。',
   brand: '#6857d9', secondary: '#2a9d8f', accent: '#e9a23b', radius: '16',
-  density: 'comfortable', background: ''
+  density: 'comfortable', background: '',
+  siteDescription: '干净、克制、长期维护的个人网站导航。',
+  blogDescription: '记录技术折腾、思考和那些值得慢慢写下来的事情。',
+  seoAuthor: '暮色'
 };
 
 function seed() {
@@ -152,10 +155,11 @@ export function deletePostCategory(id:number) {
   return Number(db.prepare('DELETE FROM post_categories WHERE id=?').run(id).changes)>0;
 }
 
-export function listPosts(includeDrafts=false, categorySlug=''): Post[] {
+export function listPosts(includeDrafts=false, categorySlug='', query=''): Post[] {
   const conditions = includeDrafts ? [] : ["p.status='published'"];
   const params: string[] = [];
   if (categorySlug) { conditions.push('pc.slug=?'); params.push(categorySlug); }
+  if (query) { conditions.push('(p.title LIKE ? OR p.excerpt LIKE ? OR p.content LIKE ?)'); const term=`%${query}%`; params.push(term,term,term); }
   const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
   return db.prepare(`SELECT p.id,p.title,p.slug,p.excerpt,p.content,p.cover,p.status,p.featured,p.category_id AS categoryId,
     pc.name AS categoryName,pc.slug AS categorySlug,p.published_at AS publishedAt,p.updated_at AS updatedAt

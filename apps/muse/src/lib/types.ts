@@ -29,4 +29,5 @@ export type WordCloudItem = { word: string; count: number; weight: number };
 export type Appearance = {
   siteName: string; blogName: string; heroLine: string; brand: string; secondary: string;
   accent: string; radius: string; density: 'compact' | 'comfortable'; background: string;
+  siteDescription: string; blogDescription: string; seoAuthor: string;
 };
