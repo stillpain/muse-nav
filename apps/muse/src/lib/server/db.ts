@@ -110,12 +110,20 @@ export function saveAppearance(input: Appearance) {
   const statement = db.prepare('INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value');
   db.exec('BEGIN'); try { for (const [key, value] of Object.entries(input)) statement.run(key, String(value)); db.exec('COMMIT'); } catch (error) { db.exec('ROLLBACK'); throw error; }
 }
-export function listCategories(): Category[] { return db.prepare('SELECT id,name,slug,description,color,sort_order AS sortOrder FROM categories ORDER BY sort_order,name').all() as unknown as Category[]; }
+export function getSetting(key:string) { return (db.prepare('SELECT value FROM settings WHERE key=?').get(key) as {value:string}|undefined)?.value || ''; }
+export function saveSetting(key:string,value:string) { db.prepare('INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value').run(key,value); }
+
+export function listCategories(): Category[] { return db.prepare(`SELECT c.id,c.name,c.slug,c.description,c.color,c.sort_order AS sortOrder,COUNT(s.id) AS siteCount
+  FROM categories c LEFT JOIN sites s ON s.category_id=c.id GROUP BY c.id ORDER BY c.sort_order,c.name`).all() as unknown as Category[]; }
 export function saveCategory(input: Omit<Category,'id'> & {id?:number}) {
   if (input.id) db.prepare('UPDATE categories SET name=?,slug=?,description=?,color=?,sort_order=? WHERE id=?').run(input.name,input.slug,input.description,input.color,input.sortOrder,input.id);
   else db.prepare('INSERT INTO categories(name,slug,description,color,sort_order) VALUES(?,?,?,?,?)').run(input.name,input.slug,input.description,input.color,input.sortOrder);
 }
-export function deleteCategory(id:number) { db.prepare('DELETE FROM categories WHERE id=? AND NOT EXISTS(SELECT 1 FROM sites WHERE category_id=?)').run(id,id); }
+export function categoryUsage(id:number) { return Number((db.prepare('SELECT COUNT(*) AS count FROM sites WHERE category_id=?').get(id) as {count:number}).count); }
+export function deleteCategory(id:number) {
+  if (categoryUsage(id)>0 || listCategories().length<=1) return false;
+  return Number(db.prepare('DELETE FROM categories WHERE id=?').run(id).changes)>0;
+}
 
 export function listSites(includeDrafts=false): Site[] {
   const where = includeDrafts ? '' : "WHERE s.status='published'";
@@ -131,14 +139,18 @@ export function deleteSite(id:number) { db.prepare('DELETE FROM sites WHERE id=?
 
 export function listPostCategories(): PostCategory[] {
   return db.prepare(`SELECT pc.id,pc.name,pc.slug,pc.description,pc.color,pc.sort_order AS sortOrder,
-    COUNT(p.id) AS postCount FROM post_categories pc LEFT JOIN posts p ON p.category_id=pc.id AND p.status='published'
+    COUNT(p.id) AS postCount FROM post_categories pc LEFT JOIN posts p ON p.category_id=pc.id
     GROUP BY pc.id ORDER BY pc.sort_order,pc.name`).all() as unknown as PostCategory[];
 }
 export function savePostCategory(input: Omit<PostCategory,'id'|'postCount'> & {id?:number}) {
   if (input.id) db.prepare('UPDATE post_categories SET name=?,slug=?,description=?,color=?,sort_order=? WHERE id=?').run(input.name,input.slug,input.description,input.color,input.sortOrder,input.id);
   else db.prepare('INSERT INTO post_categories(name,slug,description,color,sort_order) VALUES(?,?,?,?,?)').run(input.name,input.slug,input.description,input.color,input.sortOrder);
 }
-export function deletePostCategory(id:number) { db.prepare('DELETE FROM post_categories WHERE id=? AND NOT EXISTS(SELECT 1 FROM posts WHERE category_id=?)').run(id,id); }
+export function postCategoryUsage(id:number) { return Number((db.prepare('SELECT COUNT(*) AS count FROM posts WHERE category_id=?').get(id) as {count:number}).count); }
+export function deletePostCategory(id:number) {
+  if (postCategoryUsage(id)>0 || listPostCategories().length<=1) return false;
+  return Number(db.prepare('DELETE FROM post_categories WHERE id=?').run(id).changes)>0;
+}
 
 export function listPosts(includeDrafts=false, categorySlug=''): Post[] {
   const conditions = includeDrafts ? [] : ["p.status='published'"];

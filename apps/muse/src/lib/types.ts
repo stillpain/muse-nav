@@ -4,7 +4,7 @@ export type Site = {
   status: 'published' | 'draft'; createdAt: string; updatedAt: string;
 };
 
-export type Category = { id: number; name: string; slug: string; description: string; color: string; sortOrder: number };
+export type Category = { id: number; name: string; slug: string; description: string; color: string; sortOrder: number; siteCount?: number };
 export type Post = {
   id: number; title: string; slug: string; excerpt: string; content: string; cover: string;
   status: 'published' | 'draft'; featured: number; categoryId?: number; categoryName?: string; categorySlug?: string;
