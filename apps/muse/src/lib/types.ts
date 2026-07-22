@@ -26,6 +26,11 @@ export type Comment = {
 
 export type WordCloudItem = { word: string; count: number; weight: number };
 
+export type VisitorCountry = { code: string; visitors: number; percentage: number };
+export type VisitorStats = {
+  totalVisitors: number; todayVisitors: number; pageViews: number; countries: VisitorCountry[];
+};
+
 export type Appearance = {
   siteName: string; blogName: string; heroLine: string; brand: string; secondary: string;
   accent: string; radius: string; density: 'compact' | 'comfortable'; background: string;
