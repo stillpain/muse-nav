@@ -1,7 +1,7 @@
 import { DatabaseSync } from 'node:sqlite';
 import { mkdirSync, readFileSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
-import type { Appearance, Category, Comment, Post, PostCategory, Site, User, WordCloudItem } from '$lib/types';
+import type { Appearance, Category, Comment, Post, PostCategory, Site, User, VisitorStats, WordCloudItem } from '$lib/types';
 
 const dataDir = resolve(process.env.MUSE_DATA_DIR || 'data');
 const dbFile = resolve(dataDir, 'muse.db');
@@ -47,6 +47,17 @@ db.exec(`
   );
   CREATE INDEX IF NOT EXISTS comments_post_idx ON comments(post_id,status,created_at);
   CREATE INDEX IF NOT EXISTS comments_admin_idx ON comments(admin_read,mentions_admin,created_at);
+  CREATE TABLE IF NOT EXISTS analytics_visitors (
+    visitor_hash TEXT PRIMARY KEY, country_code TEXT NOT NULL DEFAULT 'XX', first_seen TEXT NOT NULL,
+    last_seen TEXT NOT NULL, page_views INTEGER NOT NULL DEFAULT 1
+  );
+  CREATE TABLE IF NOT EXISTS analytics_daily (
+    visitor_hash TEXT NOT NULL, visit_date TEXT NOT NULL, country_code TEXT NOT NULL DEFAULT 'XX',
+    first_seen TEXT NOT NULL, last_seen TEXT NOT NULL, page_views INTEGER NOT NULL DEFAULT 1,
+    PRIMARY KEY(visitor_hash,visit_date)
+  );
+  CREATE INDEX IF NOT EXISTS analytics_country_idx ON analytics_visitors(country_code);
+  CREATE INDEX IF NOT EXISTS analytics_daily_date_idx ON analytics_daily(visit_date,country_code);
   CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
 `);
 
@@ -56,7 +67,10 @@ if (!postColumns.some((column) => column.name === 'category_id')) db.exec('ALTER
 const defaults: Appearance = {
   siteName: '暮色导航', blogName: '暮色手记', heroLine: '暮色落下，仍有坐标发亮。',
   brand: '#6857d9', secondary: '#2a9d8f', accent: '#e9a23b', radius: '16',
-  density: 'comfortable', background: ''
+  density: 'comfortable', background: '',
+  siteDescription: '干净、克制、长期维护的个人网站导航。',
+  blogDescription: '记录技术折腾、思考和那些值得慢慢写下来的事情。',
+  seoAuthor: '暮色'
 };
 
 function seed() {
@@ -152,10 +166,11 @@ export function deletePostCategory(id:number) {
   return Number(db.prepare('DELETE FROM post_categories WHERE id=?').run(id).changes)>0;
 }
 
-export function listPosts(includeDrafts=false, categorySlug=''): Post[] {
+export function listPosts(includeDrafts=false, categorySlug='', query=''): Post[] {
   const conditions = includeDrafts ? [] : ["p.status='published'"];
   const params: string[] = [];
   if (categorySlug) { conditions.push('pc.slug=?'); params.push(categorySlug); }
+  if (query) { conditions.push('(p.title LIKE ? OR p.excerpt LIKE ? OR p.content LIKE ?)'); const term=`%${query}%`; params.push(term,term,term); }
   const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
   return db.prepare(`SELECT p.id,p.title,p.slug,p.excerpt,p.content,p.cover,p.status,p.featured,p.category_id AS categoryId,
     pc.name AS categoryName,pc.slug AS categorySlug,p.published_at AS publishedAt,p.updated_at AS updatedAt
@@ -212,5 +227,27 @@ export function updateComment(id:number,status:'pending'|'published'|'hidden') {
 export function markCommentRead(id:number) { db.prepare('UPDATE comments SET admin_read=1 WHERE id=?').run(id); }
 export function deleteComment(id:number) { db.prepare('DELETE FROM comments WHERE id=?').run(id); }
 export function commentStats() { return db.prepare("SELECT COUNT(*) AS total,SUM(CASE WHEN admin_read=0 THEN 1 ELSE 0 END) AS unread,SUM(CASE WHEN admin_read=0 AND mentions_admin=1 THEN 1 ELSE 0 END) AS mentions FROM comments").get() as {total:number;unread:number;mentions:number}; }
+
+export function recordVisit(visitorHash:string,countryCode='XX') {
+  const now=new Date().toISOString();const visitDate=now.slice(0,10);const country=/^[A-Z]{2}$/.test(countryCode)?countryCode:'XX';
+  db.exec('BEGIN');try{
+    db.prepare(`INSERT INTO analytics_visitors(visitor_hash,country_code,first_seen,last_seen,page_views) VALUES(?,?,?,?,1)
+      ON CONFLICT(visitor_hash) DO UPDATE SET last_seen=excluded.last_seen,page_views=analytics_visitors.page_views+1,
+      country_code=CASE WHEN excluded.country_code!='XX' THEN excluded.country_code ELSE analytics_visitors.country_code END`).run(visitorHash,country,now,now);
+    db.prepare(`INSERT INTO analytics_daily(visitor_hash,visit_date,country_code,first_seen,last_seen,page_views) VALUES(?,?,?,?,?,1)
+      ON CONFLICT(visitor_hash,visit_date) DO UPDATE SET last_seen=excluded.last_seen,page_views=analytics_daily.page_views+1,
+      country_code=CASE WHEN excluded.country_code!='XX' THEN excluded.country_code ELSE analytics_daily.country_code END`).run(visitorHash,visitDate,country,now,now);
+    db.exec('COMMIT');
+  }catch(error){db.exec('ROLLBACK');throw error;}
+}
+
+export function getVisitorStats():VisitorStats {
+  const today=new Date().toISOString().slice(0,10);
+  const totals=db.prepare('SELECT COUNT(*) AS totalVisitors,COALESCE(SUM(page_views),0) AS pageViews FROM analytics_visitors').get() as {totalVisitors:number;pageViews:number};
+  const daily=db.prepare('SELECT COUNT(*) AS todayVisitors FROM analytics_daily WHERE visit_date=?').get(today) as {todayVisitors:number};
+  const countries=db.prepare(`SELECT country_code AS code,COUNT(*) AS visitors FROM analytics_visitors
+    GROUP BY country_code ORDER BY visitors DESC,country_code LIMIT 8`).all() as Array<{code:string;visitors:number}>;
+  return {totalVisitors:Number(totals.totalVisitors),todayVisitors:Number(daily.todayVisitors),pageViews:Number(totals.pageViews),countries:countries.map(item=>({...item,visitors:Number(item.visitors),percentage:totals.totalVisitors?Math.round(Number(item.visitors)/Number(totals.totalVisitors)*100):0}))};
+}
 
 export function databasePath() { return dbFile; }
