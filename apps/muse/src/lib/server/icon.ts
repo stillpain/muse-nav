@@ -1,7 +1,6 @@
 import { lookup } from 'node:dns/promises';
 import { writeFile } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
-import { extname } from 'node:path';
 import { mediaDir } from './db';
 
 function isPrivate(address:string) {
@@ -25,21 +24,43 @@ async function safeFetch(url:URL, accept:string) {
   }
   return response;
 }
+const protectedSiteIcons:Record<string,string[]> = {
+  'chatgpt.com': [
+    'https://chatgpt.com/cdn/assets/favicon-180x180-od45eci6.webp',
+    'https://chatgpt.com/favicon.ico'
+  ],
+  'claude.ai': ['https://claude.ai/favicon.ico']
+};
+
+function normalizedHost(hostname:string) {
+  const host=hostname.toLowerCase().replace(/^www\./,'');
+  return host==='chat.openai.com' ? 'chatgpt.com' : host;
+}
 function candidates(html:string, base:URL) {
   const found:string[] = [];
+  const host=normalizedHost(base.hostname);
+  found.push(...(protectedSiteIcons[host] || []));
   for (const tag of html.match(/<link\b[^>]*>/gi) || []) {
     const rel = tag.match(/rel=["']([^"']+)["']/i)?.[1] || '';
     const href = tag.match(/href=["']([^"']+)["']/i)?.[1];
-    if (href && /icon/i.test(rel)) { try { found.push(new URL(href, base).href); } catch {} }
+    if (href && /icon/i.test(rel) && !/^(data|blob):/i.test(href)) {
+      try { found.push(new URL(href, base).href); } catch {}
+    }
   }
   found.push(new URL('/favicon.ico', base).href);
+  found.push(new URL('/apple-touch-icon.png', base).href);
+  found.push(`https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}&sz=128`);
+  found.push(`https://icons.duckduckgo.com/ip3/${encodeURIComponent(host)}.ico`);
   return [...new Set(found)];
 }
 export async function fetchIcon(address:string) {
-  const pageUrl = new URL(address); const page = await safeFetch(pageUrl, 'text/html');
-  if (!page.ok) throw new Error(`网站返回 ${page.status}`);
-  const html = (await page.text()).slice(0, 512_000);
-  for (const value of candidates(html, pageUrl).slice(0, 8)) {
+  const pageUrl = new URL(address);
+  let html='';
+  try {
+    const page = await safeFetch(pageUrl, 'text/html');
+    if (page.ok) html=(await page.text()).slice(0,512_000);
+  } catch { /* Protected sites may block HTML bots; direct icon candidates still work. */ }
+  for (const value of candidates(html, pageUrl).slice(0, 12)) {
     try {
       const response = await safeFetch(new URL(value), 'image/*'); if (!response.ok) continue;
       const type = (response.headers.get('content-type') || '').split(';')[0];
